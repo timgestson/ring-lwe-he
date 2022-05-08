@@ -1,16 +1,18 @@
 use super::field::{Field};
 use core::ops::{Add, Mul, Rem};
+use rand::Rng;
+use rand_distr::{Normal, Distribution, Uniform};
 
 
-fn is_zero<F: Field>(poly: &[F])-> bool {
+pub fn is_zero<F: Field>(poly: &[F])-> bool {
     poly.is_empty() || poly.iter().all(|&coef| coef.is_zero())
 }
 
-fn degree<F: Field>(poly: &[F]) -> usize {
+pub fn degree<F: Field>(poly: &[F]) -> usize {
     poly.len() - 1
 }
 
-fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
+pub fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     let result_len = core::cmp::max(a.len(), b.len());
     let mut result = Vec::with_capacity(result_len);
     for i in 0..result_len {
@@ -25,7 +27,7 @@ fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     result
 }
 
-fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
+pub fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     let result_len = a.len() + b.len() - 1;
     let mut result = vec![F::ZERO; result_len];
     for i in 0..a.len() {
@@ -37,7 +39,7 @@ fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     result
 }
 
-fn div_with_rem<F: Field>(a: &[F], b: &[F]) -> (Vec<F>, Vec<F>) {
+pub fn div_with_rem<F: Field>(a: &[F], b: &[F]) -> (Vec<F>, Vec<F>) {
     let (a_degree, b_degree) = (degree(&a), degree(&b));
     if is_zero(&a) {
         (vec![F::ZERO], Vec::<F>::new())
@@ -66,155 +68,66 @@ fn div_with_rem<F: Field>(a: &[F], b: &[F]) -> (Vec<F>, Vec<F>) {
     }
 }
 
-/*
-#[derive(Clone)]
-struct Polynomial<F: Field>(Vec<F>);
-
-impl<F: Field> Polynomial<F> {
-
-    fn zero() -> Self {
-        Self::new(&[F::ZERO])
-    }
-
-    fn new(coef: &[F]) -> Self {
-        Polynomial(coef.to_vec())
-    }
-
-    fn to_vec(self) -> Vec<F> {
-        self.0
-    }
-
-    fn degree(self) -> usize {
-        self.0.len() - 1
-    }
-
-    fn is_zero(self) -> bool {
-        self.0.is_empty() || self.0.iter().all(|&coef| coef.is_zero())
-    }
+pub fn gen_ternary<F: Field>(size: usize) -> Vec<F> {
+    let mut rng = rand::thread_rng();
+    (0..size).map(|_|{
+        rng.gen_range(-1..2 as i32)
+    }).map(F::from)
+    .collect()
 }
 
-impl<F: Field> Add for Polynomial<F> {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        let result_len = core::cmp::max(self.0.len(), other.0.len());
-        let mut result = Vec::with_capacity(result_len);
-        for i in 0..result_len {
-            let c1 = if i < self.0.len() { self.0[i] } else { F::ZERO };
-            let c2 = if i < other.0.len() {
-                other.0[i]
-            } else {
-                F::ZERO
-            };
-            result.push(c1 + c2);
+pub fn gen_uniform<F: Field>(size: usize, modulus: i32) -> Vec<F> {
+    let mut rng = rand::thread_rng();
+    let field = Uniform::from(0..modulus);
+    (0..size).map(|_|{
+        field.sample(&mut rng) as i32
+    }).map(F::from)
+    .collect()
+}
+
+
+pub fn gen_gaussian<F: Field>(size: usize, mu:f64, sigma: f64, beta: u32) -> Vec<F> {
+    let mut rng = rand::thread_rng();
+    let normal = Normal::new(mu, sigma).unwrap();
+    (0..size).map(|_|{
+        normal.sample(&mut rng) as i32
+    }).map(F::from)
+    .collect()
+}
+
+
+pub fn convert<F1: Field, F2: Field>(a: &[F1], factor: f64) -> Vec<F2> {
+    a.iter().map(
+        |&f| {
+            let float: f64 = f.into();
+            println!("{} * {} = {}", float, factor, float * factor);
+            F2::new((float * factor).round() as u32)
         }
-        Polynomial(result)
+    ).collect()
+}
+
+pub fn gen_cyclical_poly<F:Field>(n: usize) -> Vec<F> {
+    let mut poly = vec![F::ONE];
+    for _ in 0..(n-1) {
+        poly.push(F::ZERO);
     }
+    poly.push(F::ONE);
+    poly
 }
 
-impl<F: Field> Mul for Polynomial<F> {
-    type Output = Self;
-    fn mul(self, other: Self) -> Self {
-        let result_len = self.0.len() + other.0.len() - 1;
-        let mut result = vec![F::ZERO; result_len];
-        for i in 0..self.0.len() {
-            for j in 0..other.0.len() {
-                let s = self.0[i] * other.0[j];
-                result[i + j] = result[i + j] + s;
-            }
-        }
-        Polynomial(result)
-    }
+pub fn negate<F:Field>(a: &[F]) -> Vec<F> {
+    a.iter().map(|f| f.neg()).collect()
 }
-
-fn gen_normal<F: Field>(size: usize) -> &[F] {
-
-}
-
-fn gen_binary<F: Field>(size: usize) -> &[F] {
-
-}
-
-fn gen_uniform<F: Field>(size: usize) -> &[F] {
-
-}*/
 
 #[test]
 fn test() {
-
-    use core::ops::{Add, Mul, Rem, Sub, SubAssign};
-
-    #[derive(Clone, Debug, PartialEq)]
-    pub struct F7(pub u32);
-
-    impl F7 {
-        pub fn new(num: u32) -> Self {
-            Self(num % Self::MODULUS.0)
-        }
-    }
-
-    impl Copy for F7 {}
-
-    impl Add for F7 {
-        type Output = Self;
-
-        fn add(self, other: Self) -> Self {
-            Self((self.0 + other.0) % Self::MODULUS.0)
-        }
-    }
-
-    impl Sub for F7 {
-        type Output = Self;
-
-        fn sub(self, other: Self) -> Self {
-            let (result, under) = self.0.overflowing_sub(other.0);
-            Self(result.wrapping_add(Self::MODULUS.0 * (under as u32)))
-        }
-    }
-
-    impl SubAssign for F7 {
-        fn sub_assign(self: &mut Self, other: Self) {
-            *self = *self - other;
-        }
-    }
-
-    impl Mul for F7 {
-        type Output = Self;
-
-        fn mul(self, other: Self) -> Self {
-            Self(((self.0 as u64 * other.0 as u64) % Self::MODULUS.0 as u64) as u32)
-        }
-    }
-
-    impl Field for F7 {
-        const MODULUS: Self = Self(13);
-        const ZERO: Self = Self(0);
-        const ONE: Self = Self(1);
-
-        fn is_zero(self) -> bool {
-            self == Self::ZERO
-        }
-        
-        fn inv(self) -> Self {
-            let mut inverse = F7::ZERO;
-            for i in 0..Self::MODULUS.0 {
-                inverse = F7::new(i);
-                if self * inverse == Self::ONE {
-                    break
-                }
-            }
-            inverse
-        }
-        
-        fn neg(self) -> Self {
-            Self::MODULUS - self
-        }
-    }
+    use super::f7::Plaintext;
 
     let n = 4;
-    let A = [F7::new(4), F7::new(1), F7::new(11), F7::new(10)];
-    let sA = [F7::new(6), F7::new(9), F7::new(11), F7::new(11)];
-    let eA = [F7::new(0), F7::new(1).neg(), F7::new(1), F7::new(1)];
-    let xN_1 =[F7::new(1), F7::new(0), F7::new(0), F7::new(0), F7::new(1)];
+    let A = [Plaintext::new(4), Plaintext::new(1), Plaintext::new(11), Plaintext::new(10)];
+    let sA = [Plaintext::new(6), Plaintext::new(9), Plaintext::new(11), Plaintext::new(11)];
+    let eA = [Plaintext::new(0), Plaintext::new(1).neg(), Plaintext::new(1), Plaintext::new(1)];
+    let xN_1 =[Plaintext::new(1), Plaintext::new(0), Plaintext::new(0), Plaintext::new(0), Plaintext::new(1)];
     let enc = div_with_rem(&add(&mul(&div_with_rem(&A, &xN_1).1, &sA), &eA), &xN_1).1;
     println!("{:?}", enc);
 }
