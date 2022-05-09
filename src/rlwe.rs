@@ -1,63 +1,52 @@
-use crate::field::Field;
-use super::f7::{Plaintext, Coefficient};
-use super::polynomial::{gen_cyclical_poly, gen_gaussian, gen_uniform, gen_ternary, mul, add, div_with_rem, convert, negate};
+use super::field::Field;
+use super::polynomial::{
+    add, div_with_rem, gen_cyclical_poly, gen_gaussian, gen_ternary, gen_uniform, mul, negate,
+    scale,
+};
+use core::convert::*;
 
+pub trait Rlwe {
+    // Plaintext Field
+    type PF: Field;
+    // CipherText Field
+    type CF: Field;
 
-/*
-trait Rlwe {
-    // Degree of the divisor (power of 2)
-    const N: u32;
-    // Plaintext Modulus
-    type T_FIELD: Field;
-    // Cipher Modulus
-    const Q_FIELD: Field;
+    const TERMS: usize;
 
-}*/
+    fn cyclical() -> Vec<Self::CF> {
+        gen_cyclical_poly(Self::TERMS)
+    }
 
+    fn gen_keys() -> (Vec<Self::CF>, (Vec<Self::CF>, Vec<Self::CF>)) {
+        let sk: Vec<Self::CF> = gen_ternary(Self::TERMS);
+        let a: Vec<Self::CF> = gen_uniform(Self::TERMS, Self::CF::MODULUS.into());
+        let e: Vec<Self::CF> = gen_gaussian(Self::TERMS, 0., 3.2);
+        let pk1: Vec<Self::CF> =
+            div_with_rem(&add(&negate(&mul(&a, &sk)), &e), &Self::cyclical()).1;
+        let pk2 = a;
+        (sk, (pk1, pk2))
+    }
 
-#[test]
-fn errors(){
-    let e2: Vec<Coefficient> = gen_gaussian(4, 0., 3.2, 19);
-    //println!("{:?}", e2);
-}
-
-#[test]
-fn rlwe(){
-    let d = 16;
-    let t = 7.;
-    let q = 1024.;
-    let delta_up = ((1024. / 7.) as u64) as f64;
-    let delta_down = 7. / 1024.;
-    let cyclical = gen_cyclical_poly(d);
-    let sk: Vec<Coefficient> = gen_ternary(d);
-    let a: Vec<Coefficient> = gen_uniform(d, Coefficient::MODULUS.0 as i32);
-    let e: Vec<Coefficient> = gen_gaussian(d, 0., 3.2, 19);
-    let mut m =vec![Plaintext::ZERO; 16];
-    m[0] = Plaintext::ONE;
-    let m_delta = convert(&m, delta_up);
-    
-    let pk1: Vec<Coefficient> = (div_with_rem(&add(&negate(&mul(&a, &sk)), &e), &cyclical).1);//.iter().map(|f| f.inv()).collect();
-    let pk2 = a.clone();
-    let u: Vec<Coefficient> = gen_ternary(d);
-    println!("EEEEEEEEEE {:?}", e);
-    println!("E      {:?}", div_with_rem(&add(&pk1, &mul(&sk, &pk2)), &cyclical).1);
-    //let u: Vec<Coefficient> = gen_gaussian(4, 0., 3.2, 19);
-    // assert mod(pk_0 + s * pk_1, c_q, p_q) == e
-
-    let e1: Vec<Coefficient> = gen_gaussian(d, 0., 3.2, 19);
-    let e2: Vec<Coefficient> = gen_gaussian(d, 0., 3.2, 19);
-    let c1: Vec<Coefficient> = div_with_rem(&add(&add(&mul(&pk1, &u), &e1), &m_delta), &cyclical).1;
-    let c2: Vec<Coefficient> = div_with_rem(&add(&mul(&pk2, &u), &e2), &cyclical).1;
-
-    let c3 = add(&c1, &c1);
-    let c4 = add(&c2, &c2);
-    println!("{:?}", c1);
-    println!("{:?}", c2);
-    println!("{:?}", sk);
-    println!("FDSFSDFSD {}", (((1024. / 7.) as u64) as f64) * 7. + (1024. % 7.));
-
-    //let m_unecrypted = div_with_rem(&convert_down(&div_with_rem(&add(&c1, &mul(&c2, &sk)), &cyclical).1, F32::new(2)), &xN_2).1;
-    let noisy_plaintext = div_with_rem(&add(&c3, &mul(&c4, &sk)), &cyclical).1;
-    let unenc: Vec<Plaintext>  = convert(&noisy_plaintext, 7./1024.);
-    println!("{:?}", unenc);
+    fn encrypt(
+        pk1: Vec<Self::CF>,
+        pk2: Vec<Self::CF>,
+        plaintext: Vec<Self::PF>,
+    ) -> (Vec<Self::CF>, Vec<Self::CF>) {
+        let cf_mod: f64 = Self::CF::MODULUS.into();
+        let pf_mod: f64 = Self::PF::MODULUS.into();
+        let enc = scale(&plaintext, cf_mod / pf_mod);
+        let u: Vec<Self::CF> = gen_ternary(Self::TERMS);
+        let e1: Vec<Self::CF> = gen_gaussian(Self::TERMS, 0., 3.2);
+        let e2: Vec<Self::CF> = gen_gaussian(Self::TERMS, 0., 3.2);
+        let c1: Vec<Self::CF> =
+            div_with_rem(&add(&add(&mul(&pk1, &u), &e1), &enc), &Self::cyclical()).1;
+        let c2: Vec<Self::CF> = div_with_rem(&add(&mul(&pk2, &u), &e2), &Self::cyclical()).1;
+        (c1, c2)
+    }
+    fn decrypt(sk: Vec<Self::CF>, c1: Vec<Self::CF>, c2: Vec<Self::CF>) -> Vec<Self::PF> {
+        let cf_mod: f64 = Self::CF::MODULUS.into();
+        let pf_mod: f64 = Self::PF::MODULUS.into();
+        let noisy_plaintext = div_with_rem(&add(&c1, &mul(&c2, &sk)), &Self::cyclical()).1;
+        scale(&noisy_plaintext, pf_mod / cf_mod)
+    }
 }

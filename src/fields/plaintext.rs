@@ -1,5 +1,6 @@
-use core::ops::{Add, Mul, Rem, Sub, SubAssign};
-use super::field::Field;
+use crate::Field;
+use core::fmt::Debug;
+use core::ops::{Add, Mul, Sub, SubAssign};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Plaintext(pub u32);
@@ -9,7 +10,7 @@ impl From<i32> for Plaintext {
         let reduced = int % Self::MODULUS.0 as i32;
         if reduced < 0 {
             Self::new((Self::MODULUS.0 as i32 + reduced) as u32)
-        }else{
+        } else {
             Self::new(reduced as u32)
         }
     }
@@ -47,7 +48,7 @@ impl Sub for Plaintext {
 }
 
 impl SubAssign for Plaintext {
-    fn sub_assign(self: &mut Self, other: Self) {
+    fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
@@ -64,7 +65,7 @@ impl Field for Plaintext {
     const MODULUS: Self = Self(7);
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
-    
+
     fn new(num: u32) -> Self {
         Self(num % Self::MODULUS.0)
     }
@@ -72,53 +73,52 @@ impl Field for Plaintext {
     fn is_zero(self) -> bool {
         self == Self::ZERO
     }
-    
+
     fn inv(self) -> Self {
         let mut inverse = Plaintext::ZERO;
         for i in 0..Self::MODULUS.0 {
             inverse = Plaintext::new(i);
             if self * inverse == Self::ONE {
-                break
+                break;
             }
         }
         inverse
     }
-    
+
     fn neg(self) -> Self {
         Self::MODULUS - self
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Coefficient(pub u32);
+pub struct CipherText(pub u32);
 
-
-impl From<i32> for Coefficient {
+impl From<i32> for CipherText {
     fn from(int: i32) -> Self {
         let reduced = int % Self::MODULUS.0 as i32;
         if reduced < 0 {
             Self::new((Self::MODULUS.0 as i32 + reduced) as u32)
-        }else{
+        } else {
             Self::new(reduced as u32)
         }
     }
 }
 
-impl Into<i32> for Coefficient {
+impl Into<i32> for CipherText {
     fn into(self) -> i32 {
         self.0 as i32
     }
 }
 
-impl Into<f64> for Coefficient {
+impl Into<f64> for CipherText {
     fn into(self) -> f64 {
         self.0 as f64
     }
 }
 
-impl Copy for Coefficient {}
+impl Copy for CipherText {}
 
-impl Add for Coefficient {
+impl Add for CipherText {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -126,7 +126,7 @@ impl Add for Coefficient {
     }
 }
 
-impl Sub for Coefficient {
+impl Sub for CipherText {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
@@ -135,13 +135,13 @@ impl Sub for Coefficient {
     }
 }
 
-impl SubAssign for Coefficient {
-    fn sub_assign(self: &mut Self, other: Self) {
+impl SubAssign for CipherText {
+    fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
-impl Mul for Coefficient {
+impl Mul for CipherText {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
@@ -149,11 +149,11 @@ impl Mul for Coefficient {
     }
 }
 
-impl Field for Coefficient {
+impl Field for CipherText {
     const MODULUS: Self = Self(1024);
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
-    
+
     fn new(num: u32) -> Self {
         Self(num % Self::MODULUS.0)
     }
@@ -161,18 +161,18 @@ impl Field for Coefficient {
     fn is_zero(self) -> bool {
         self == Self::ZERO
     }
-    
+
     fn inv(self) -> Self {
-        let mut inverse = Coefficient::ZERO;
+        let mut inverse = CipherText::ZERO;
         for i in 0..Self::MODULUS.0 {
-            inverse = Coefficient::new(i);
+            inverse = CipherText::new(i);
             if self * inverse == Self::ONE {
-                break
+                break;
             }
         }
         inverse
     }
-    
+
     fn neg(self) -> Self {
         Self::MODULUS - self
     }
