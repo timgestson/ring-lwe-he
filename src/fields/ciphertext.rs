@@ -5,6 +5,35 @@ use core::ops::{Add, Mul, Sub, SubAssign};
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ciphertext(pub u32);
 
+impl Field for Ciphertext {
+    const MODULUS: Self = Self(1024);
+    const ZERO: Self = Self(0);
+    const ONE: Self = Self(1);
+
+    fn new(num: u32) -> Self {
+        Self(num % Self::MODULUS.0)
+    }
+
+    fn is_zero(self) -> bool {
+        self == Self::ZERO
+    }
+
+    fn inv(self) -> Self {
+        let mut inverse = Ciphertext::ZERO;
+        for i in 0..Self::MODULUS.0 {
+            inverse = Ciphertext::new(i);
+            if self * inverse == Self::ONE {
+                break;
+            }
+        }
+        inverse
+    }
+
+    fn neg(self) -> Self {
+        Self::MODULUS - self
+    }
+}
+
 impl From<i32> for Ciphertext {
     fn from(int: i32) -> Self {
         let reduced = int % Self::MODULUS.0 as i32;
@@ -58,34 +87,5 @@ impl Mul for Ciphertext {
 
     fn mul(self, other: Self) -> Self {
         Self(((self.0 as u64 * other.0 as u64) % Self::MODULUS.0 as u64) as u32)
-    }
-}
-
-impl Field for Ciphertext {
-    const MODULUS: Self = Self(1024);
-    const ZERO: Self = Self(0);
-    const ONE: Self = Self(1);
-
-    fn new(num: u32) -> Self {
-        Self(num % Self::MODULUS.0)
-    }
-
-    fn is_zero(self) -> bool {
-        self == Self::ZERO
-    }
-
-    fn inv(self) -> Self {
-        let mut inverse = Ciphertext::ZERO;
-        for i in 0..Self::MODULUS.0 {
-            inverse = Ciphertext::new(i);
-            if self * inverse == Self::ONE {
-                break;
-            }
-        }
-        inverse
-    }
-
-    fn neg(self) -> Self {
-        Self::MODULUS - self
     }
 }
