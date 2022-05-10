@@ -1,16 +1,62 @@
 use super::field::Field;
 use rand::Rng;
 use rand_distr::{Distribution, Normal, Uniform};
+use core::ops::{Add, Mul, Sub, Rem, Neg};
+
+#[derive(Debug, Clone)]
+pub struct Poly<F: Field>(pub Vec<F>);
+
+impl<F: Field> Poly<F> {
+    pub fn new(vec: Vec<F>) -> Self { Self(vec) }
+    pub fn gen_cyclical(n: usize) -> Self { Self(gen_cyclical(n))}
+    pub fn gen_gaussian(n: usize, mu: f64, sigma: f64) -> Self { Self(gen_gaussian(n, mu, sigma))}
+    pub fn gen_uniform(n: usize) -> Self { Self(gen_uniform(n, F::MODULUS.into()))}
+    pub fn gen_ternary(n: usize) -> Self { Self(gen_ternary(n))}
+    pub fn scale<O: Field>(self, factor: f64) -> Poly<O> { Poly(scale(&self.0, factor)) }
+}
+
+
+impl<F: Field> Add for Poly<F> {
+    type Output = Self;
+
+    fn add(self, b: Self) -> Self {
+        Poly(add(&self.0, &b.0))
+    }
+}
+
+impl<F: Field> Rem for Poly<F> {
+    type Output = Self;
+
+    fn rem(self, b: Self) -> Self {
+        Poly(div_with_rem(&self.0, &b.0).1)
+    }
+}
+
+impl<F: Field> Mul for Poly<F> {
+    type Output = Self;
+
+    fn mul(self, b: Self) -> Self {
+        Poly(mul(&self.0, &b.0))
+    }
+}
+
+impl<F: Field> Neg for Poly<F> {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Poly(negate(&self.0))
+    }
+}
 
 pub fn is_zero<F: Field>(poly: &[F]) -> bool {
     poly.is_empty() || poly.iter().all(|&coef| coef.is_zero())
 }
 
-pub fn degree<F: Field>(poly: &[F]) -> usize {
+fn degree<F: Field>(poly: &[F]) -> usize {
     poly.len() - 1
 }
 
-pub fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
+fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     let result_len = core::cmp::max(a.len(), b.len());
     let mut result = Vec::with_capacity(result_len);
     for i in 0..result_len {
@@ -21,7 +67,7 @@ pub fn add<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     result
 }
 
-pub fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
+fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     let result_len = a.len() + b.len() - 1;
     let mut result = vec![F::ZERO; result_len];
     for i in 0..a.len() {
@@ -33,7 +79,7 @@ pub fn mul<F: Field>(a: &[F], b: &[F]) -> Vec<F> {
     result
 }
 
-pub fn div_with_rem<F: Field>(a: &[F], b: &[F]) -> (Vec<F>, Vec<F>) {
+fn div_with_rem<F: Field>(a: &[F], b: &[F]) -> (Vec<F>, Vec<F>) {
     let (a_degree, b_degree) = (degree(a), degree(b));
     if is_zero(a) {
         (vec![F::ZERO], Vec::<F>::new())
@@ -70,7 +116,7 @@ pub fn gen_ternary<F: Field>(size: usize) -> Vec<F> {
         .collect()
 }
 
-pub fn gen_uniform<F: Field>(size: usize, modulus: i32) -> Vec<F> {
+fn gen_uniform<F: Field>(size: usize, modulus: i32) -> Vec<F> {
     let mut rng = rand::thread_rng();
     let field = Uniform::from(0..modulus);
     (0..size)
@@ -79,7 +125,7 @@ pub fn gen_uniform<F: Field>(size: usize, modulus: i32) -> Vec<F> {
         .collect()
 }
 
-pub fn gen_gaussian<F: Field>(size: usize, mu: f64, sigma: f64) -> Vec<F> {
+fn gen_gaussian<F: Field>(size: usize, mu: f64, sigma: f64) -> Vec<F> {
     let mut rng = rand::thread_rng();
     let normal = Normal::new(mu, sigma).unwrap();
     (0..size)
@@ -88,7 +134,7 @@ pub fn gen_gaussian<F: Field>(size: usize, mu: f64, sigma: f64) -> Vec<F> {
         .collect()
 }
 
-pub fn scale<F1: Field, F2: Field>(a: &[F1], factor: f64) -> Vec<F2> {
+fn scale<F1: Field, F2: Field>(a: &[F1], factor: f64) -> Vec<F2> {
     a.iter()
         .map(|&f| {
             let float: f64 = f.into();
@@ -97,7 +143,7 @@ pub fn scale<F1: Field, F2: Field>(a: &[F1], factor: f64) -> Vec<F2> {
         .collect()
 }
 
-pub fn gen_cyclical_poly<F: Field>(n: usize) -> Vec<F> {
+fn gen_cyclical<F: Field>(n: usize) -> Vec<F> {
     let mut poly = vec![F::ONE];
     for _ in 0..(n - 1) {
         poly.push(F::ZERO);
@@ -106,6 +152,6 @@ pub fn gen_cyclical_poly<F: Field>(n: usize) -> Vec<F> {
     poly
 }
 
-pub fn negate<F: Field>(a: &[F]) -> Vec<F> {
+fn negate<F: Field>(a: &[F]) -> Vec<F> {
     a.iter().map(|f| f.neg()).collect()
 }

@@ -6,7 +6,7 @@ mod rlwe;
 use crate::field::Field;
 use crate::fields::ciphertext::Ciphertext;
 use crate::fields::plaintext::Plaintext;
-use crate::polynomial::add;
+use crate::polynomial::Poly;
 use crate::rlwe::Rlwe;
 
 fn main() {
@@ -17,11 +17,10 @@ fn main() {
         const TERMS: usize = 16;
     }
     let (sk, (pk1, pk2)) = Ring::gen_keys();
-    let mut m = vec![Plaintext::ZERO; 16];
-    m[0] = Plaintext::new(3);
+    let mut m_vec = vec![Plaintext::ZERO; 16];
+    m_vec[0] = Plaintext::new(3);
+    let m = Poly::new(m_vec);
     let (c1, c2) = Ring::encrypt(pk1, pk2, m);
-    let c3 = add(&c1, &c1);
-    let c4 = add(&c2, &c2);
-    let result = Ring::decrypt(sk, c3, c4);
-    println!("{:?}", result);
+    let result = Ring::decrypt(sk, c1.clone() + c1, c2.clone() + c2);
+    println!("{:?}", result.0);
 }
