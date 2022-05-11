@@ -13,6 +13,11 @@ impl<F: Field> Poly<F> {
     pub fn gen_uniform(n: usize) -> Self { Self(gen_uniform(n, F::MODULUS.into()))}
     pub fn gen_ternary(n: usize) -> Self { Self(gen_ternary(n))}
     pub fn scale<O: Field>(self, factor: f64) -> Poly<O> { Poly(scale(&self.0, factor)) }
+    pub fn pow(self, n: usize) -> Self {
+        (1..n).fold(self.clone(), |acc, _|{ 
+            acc.clone() * self.clone() 
+        })
+    }
 }
 
 

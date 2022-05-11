@@ -6,7 +6,7 @@ use core::ops::{Add, Mul, Sub, SubAssign};
 pub struct Plaintext(pub u32);
 
 impl Field for Plaintext {
-    const MODULUS: Self = Self(27);
+    const MODULUS: Self = Self(71);
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
 

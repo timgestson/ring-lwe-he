@@ -6,7 +6,7 @@ use core::ops::{Add, Mul, Sub, SubAssign};
 pub struct Ciphertext(pub u32);
 
 impl Field for Ciphertext {
-    const MODULUS: Self = Self(4096);
+    const MODULUS: Self = Self(2^30);
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
 
