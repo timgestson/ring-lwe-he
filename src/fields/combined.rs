@@ -3,10 +3,10 @@ use core::fmt::Debug;
 use core::ops::{Add, Mul, Sub, SubAssign};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ciphertext(pub u64);
+pub struct Combined(pub u64);
 
-impl Field for Ciphertext {
-    const MODULUS: Self = Self(1024);
+impl Field for Combined {
+    const MODULUS: Self = Self((1048576_u64 * 1024_u64));
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
 
@@ -19,9 +19,9 @@ impl Field for Ciphertext {
     }
 
     fn inv(self) -> Self {
-        let mut inverse = Ciphertext::ZERO;
+        let mut inverse = Combined::ZERO;
         for i in 0..Self::MODULUS.0 {
-            inverse = Ciphertext::new(i);
+            inverse = Combined::new(i);
             if self * inverse == Self::ONE {
                 break;
             }
@@ -34,32 +34,32 @@ impl Field for Ciphertext {
     }
 }
 
-impl From<i32> for Ciphertext {
+impl From<i32> for Combined {
     fn from(int: i32) -> Self {
-        let reduced = int % Self::MODULUS.0 as i32;
+        let reduced = int as i64 % Self::MODULUS.0 as i64;
         if reduced < 0 {
-            Self::new((Self::MODULUS.0 as i32 + reduced) as u64)
+            Self::new((Self::MODULUS.0 as i64 + reduced) as u64)
         } else {
             Self::new(reduced as u64)
         }
     }
 }
 
-impl Into<i32> for Ciphertext {
+impl Into<i32> for Combined {
     fn into(self) -> i32 {
         self.0 as i32
     }
 }
 
-impl Into<f64> for Ciphertext {
+impl Into<f64> for Combined {
     fn into(self) -> f64 {
         self.0 as f64
     }
 }
 
-impl Copy for Ciphertext {}
+impl Copy for Combined {}
 
-impl Add for Ciphertext {
+impl Add for Combined {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
@@ -67,7 +67,7 @@ impl Add for Ciphertext {
     }
 }
 
-impl Sub for Ciphertext {
+impl Sub for Combined {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
@@ -76,13 +76,13 @@ impl Sub for Ciphertext {
     }
 }
 
-impl SubAssign for Ciphertext {
+impl SubAssign for Combined {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
-impl Mul for Ciphertext {
+impl Mul for Combined {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {

@@ -18,7 +18,7 @@ pub trait Field:
     const ZERO: Self;
     const ONE: Self;
 
-    fn new(int: u32) -> Self;
+    fn new(int: u64) -> Self;
     fn is_zero(self) -> bool;
     fn inv(self) -> Self;
     fn neg(self) -> Self;

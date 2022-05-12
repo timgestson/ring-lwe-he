@@ -12,20 +12,44 @@ impl<F: Field> Poly<F> {
     pub fn gen_gaussian(n: usize, mu: f64, sigma: f64) -> Self { Self(gen_gaussian(n, mu, sigma))}
     pub fn gen_uniform(n: usize) -> Self { Self(gen_uniform(n, F::MODULUS.into()))}
     pub fn gen_ternary(n: usize) -> Self { Self(gen_ternary(n))}
-    pub fn scale<O: Field>(self, factor: f64) -> Poly<O> { Poly(scale(&self.0, factor)) }
-    pub fn pow(self, n: usize) -> Self {
+    pub fn scale<O: Field>(&self, factor: f64) -> Poly<O> { Poly(scale(&self.0, factor)) }
+    pub fn pow(&self, n: usize) -> Self {
         (1..n).fold(self.clone(), |acc, _|{ 
-            acc.clone() * self.clone() 
+            &acc * &self
         })
     }
 }
 
 
-impl<F: Field> Add for Poly<F> {
-    type Output = Self;
+impl<F: Field> Add for &Poly<F> {
+    type Output = Poly<F>;
 
-    fn add(self, b: Self) -> Self {
+    fn add(self, b: Self) -> Poly<F> {
         Poly(add(&self.0, &b.0))
+    }
+}
+
+impl<F: Field> Add for Poly<F> {
+    type Output = Poly<F>;
+
+    fn add(self, b: Self) -> Poly<F> {
+        Poly(add(&self.0, &b.0))
+    }
+}
+
+impl<F: Field> Add<&Poly<F>> for Poly<F> {
+    type Output = Poly<F>;
+
+    fn add(self, b: &Poly<F>) -> Poly<F> {
+        Poly(add(&self.0, &b.0))
+    }
+}
+
+impl<F: Field> Rem for &Poly<F> {
+    type Output = Poly<F>;
+
+    fn rem(self, b: Self) -> Poly<F> {
+        Poly(div_with_rem(&self.0, &b.0).1)
     }
 }
 
@@ -37,10 +61,11 @@ impl<F: Field> Rem for Poly<F> {
     }
 }
 
-impl<F: Field> Mul for Poly<F> {
-    type Output = Self;
 
-    fn mul(self, b: Self) -> Self {
+impl<F: Field> Mul for &Poly<F> {
+    type Output = Poly<F>;
+
+    fn mul(self, b: Self) -> Poly<F> {
         Poly(mul(&self.0, &b.0))
     }
 }
@@ -49,6 +74,14 @@ impl<F: Field> Neg for Poly<F> {
     type Output = Self;
 
     fn neg(self) -> Self {
+        Poly(negate(&self.0))
+    }
+}
+
+impl<F: Field> Neg for &Poly<F> {
+    type Output = Poly<F>;
+
+    fn neg(self) -> Poly<F> {
         Poly(negate(&self.0))
     }
 }
@@ -143,7 +176,7 @@ fn scale<F1: Field, F2: Field>(a: &[F1], factor: f64) -> Vec<F2> {
     a.iter()
         .map(|&f| {
             let float: f64 = f.into();
-            F2::new((float * factor).round() as u32)
+            F2::new((float * factor).round() as u64)
         })
         .collect()
 }

@@ -3,14 +3,14 @@ use core::fmt::Debug;
 use core::ops::{Add, Mul, Sub, SubAssign};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Plaintext(pub u32);
+pub struct Plaintext(pub u64);
 
 impl Field for Plaintext {
-    const MODULUS: Self = Self(71);
+    const MODULUS: Self = Self(7);
     const ZERO: Self = Self(0);
     const ONE: Self = Self(1);
 
-    fn new(num: u32) -> Self {
+    fn new(num: u64) -> Self {
         Self(num % Self::MODULUS.0)
     }
 
@@ -38,9 +38,9 @@ impl From<i32> for Plaintext {
     fn from(int: i32) -> Self {
         let reduced = int % Self::MODULUS.0 as i32;
         if reduced < 0 {
-            Self::new((Self::MODULUS.0 as i32 + reduced) as u32)
+            Self::new((Self::MODULUS.0 as i32 + reduced) as u64)
         } else {
-            Self::new(reduced as u32)
+            Self::new(reduced as u64)
         }
     }
 }
@@ -72,7 +72,7 @@ impl Sub for Plaintext {
 
     fn sub(self, other: Self) -> Self {
         let (result, under) = self.0.overflowing_sub(other.0);
-        Self(result.wrapping_add(Self::MODULUS.0 * (under as u32)))
+        Self(result.wrapping_add(Self::MODULUS.0 * (under as u64)))
     }
 }
 
@@ -86,6 +86,6 @@ impl Mul for Plaintext {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self {
-        Self(((self.0 as u64 * other.0 as u64) % Self::MODULUS.0 as u64) as u32)
+        Self(((self.0 as u128 * other.0 as u128) % Self::MODULUS.0 as u128) as u64)
     }
 }
